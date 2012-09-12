@@ -284,39 +284,43 @@ public class JUnitReportListener implements TestListener {
     }
 
     /**
+     * Releases all resources associated with this listener.  Throws an
+     * IOException in case of an error.
+     */
+    public void closeThrows() throws IOException {
+        if (mSerializer != null) {
+            // Do this just in case endTest() was not called due to a crash in native code.
+            if (TAG_CASE.equals(mSerializer.getName())) {
+                mSerializer.endTag("", TAG_CASE);
+            }
+
+            if (mCurrentSuite != null) {
+                mSerializer.endTag("", TAG_SUITE);
+            }
+
+            if (!mMultiFile) {
+                mSerializer.endTag("", TAG_SUITES);
+            }
+            mSerializer.endDocument();
+            mSerializer.flush();
+            mSerializer = null;
+        }
+
+        if (mOutputStream != null) {
+            mOutputStream.close();
+            mOutputStream = null;
+        }
+    }
+
+    /**
      * Releases all resources associated with this listener.  Must be called
      * when the listener is finished with.
      */
     public void close() {
-        if (mSerializer != null) {
-            try {
-                // Do this just in case endTest() was not called due to a crash in native code.
-                if (TAG_CASE.equals(mSerializer.getName())) {
-                    mSerializer.endTag("", TAG_CASE);
-                }
-
-                if (mCurrentSuite != null) {
-                    mSerializer.endTag("", TAG_SUITE);
-                }
-
-                if (!mMultiFile) {
-                    mSerializer.endTag("", TAG_SUITES);
-                }
-                mSerializer.endDocument();
-                mSerializer.flush();
-                mSerializer = null;
-            } catch (IOException e) {
-                Log.e(LOG_TAG, safeMessage(e));
-            }
-        }
-
-        if (mOutputStream != null) {
-            try {
-                mOutputStream.close();
-                mOutputStream = null;
-            } catch (IOException e) {
-                Log.e(LOG_TAG, safeMessage(e));
-            }
+        try {
+            closeThrows();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, safeMessage(e));
         }
     }
 
