@@ -287,7 +287,7 @@ public class JUnitReportListener implements TestListener {
      * Releases all resources associated with this listener.  Throws an
      * IOException in case of an error.
      */
-    public void closeThrows() throws IOException {
+    public synchronized void closeThrows() throws IOException {
         if (mSerializer != null) {
             // Do this just in case endTest() was not called due to a crash in native code.
             if (TAG_CASE.equals(mSerializer.getName())) {
