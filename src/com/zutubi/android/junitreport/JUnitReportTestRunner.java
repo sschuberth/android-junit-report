@@ -91,9 +91,13 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
             private static final String LOG_KEYWORD_CRASH = "crash";
             private static final String LOG_KEYWORD_FATAL_EXCEPTION = "fatal exception";
 
+            private static final int LOG_MIN_AVAIL_LINES = 10;
+            private static final String LOG_MSG_SEPARATOR = "): ";
+
             @Override
             public void run() {
                 BufferedReader buffer = null;
+                StringBuilder message = new StringBuilder(8192);
                 try {
                     // Only look at messages from specific components.
                     Process process = Runtime.getRuntime().exec("logcat -s ActivityManager AndroidRuntime System.err");
@@ -104,6 +108,24 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
                     while ((line = buffer.readLine()) != null) {
                         String lineLower = line.toLowerCase();
                         if (mListener != null && (lineLower.contains(LOG_KEYWORD_CRASH) || lineLower.contains(LOG_KEYWORD_FATAL_EXCEPTION))) {
+                            // Assume we have at least LOG_MIN_AVAIL_LINES lines of stack trace to read.
+                            // Decrease this number if the loop does not finish before we are taken down.
+                            int lineCount = LOG_MIN_AVAIL_LINES;
+
+                            do {
+                                int index = line.indexOf(LOG_MSG_SEPARATOR);
+                                if (index >= 0) {
+                                    message.append(line.substring(index + LOG_MSG_SEPARATOR.length()));
+                                } else {
+                                    message.append(line);
+                                }
+                                message.append("\n");
+
+                                line = buffer.readLine();
+                            } while (line != null && --lineCount > 0);
+
+                            mListener.addErrorTag(message.toString());
+
                             // We do not have the time to set up exception handling in this case
                             // anymore, so call the throwing version of close() here.
                             mListener.closeThrows();
