@@ -159,7 +159,7 @@ public class JUnitReportListener implements TestListener {
             if (mCurrentSuite != null) {
                 if (mMultiFile) {
                     close();
-                } else {
+                } else if (mSerializer != null) {
                     mSerializer.endTag("", TAG_SUITE);
                     mSerializer.flush();
                 }
@@ -246,19 +246,21 @@ public class JUnitReportListener implements TestListener {
     }
 
     private void addProblem(String tag, Throwable error) {
-        try {
-            recordTestTime();
+        if (mSerializer != null) {
+            try {
+                recordTestTime();
 
-            mSerializer.startTag("", tag);
-            mSerializer.attribute("", ATTRIBUTE_MESSAGE, safeMessage(error));
-            mSerializer.attribute("", ATTRIBUTE_TYPE, error.getClass().getName());
-            StringWriter w = new StringWriter();
-            error.printStackTrace(mFilterTraces ? new FilteringWriter(w) : new PrintWriter(w));
-            mSerializer.text(w.toString());
-            mSerializer.endTag("", tag);
-            mSerializer.flush();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, safeMessage(e));
+                mSerializer.startTag("", tag);
+                mSerializer.attribute("", ATTRIBUTE_MESSAGE, safeMessage(error));
+                mSerializer.attribute("", ATTRIBUTE_TYPE, error.getClass().getName());
+                StringWriter w = new StringWriter();
+                error.printStackTrace(mFilterTraces ? new FilteringWriter(w) : new PrintWriter(w));
+                mSerializer.text(w.toString());
+                mSerializer.endTag("", tag);
+                mSerializer.flush();
+            } catch (IOException e) {
+                Log.e(LOG_TAG, safeMessage(e));
+            }
         }
     }
 
@@ -268,12 +270,14 @@ public class JUnitReportListener implements TestListener {
      * @param message message to be shown inside the error tag
      */
     public void addErrorTag(String message) throws IOException {
-        recordTestTime();
+        if (mSerializer != null) {
+            recordTestTime();
 
-        mSerializer.startTag("", TAG_ERROR);
-        mSerializer.text(message);
-        mSerializer.endTag("", TAG_ERROR);
-        mSerializer.flush();
+            mSerializer.startTag("", TAG_ERROR);
+            mSerializer.text(message);
+            mSerializer.endTag("", TAG_ERROR);
+            mSerializer.flush();
+        }
     }
 
     private void recordTestTime() throws IOException {
@@ -286,14 +290,16 @@ public class JUnitReportListener implements TestListener {
 
     @Override
     public void endTest(Test test) {
-        try {
-            if (test instanceof TestCase) {
-                recordTestTime();
-                mSerializer.endTag("", TAG_CASE);
-                mSerializer.flush();
+        if (mSerializer != null) {
+            try {
+                if (test instanceof TestCase) {
+                    recordTestTime();
+                    mSerializer.endTag("", TAG_CASE);
+                    mSerializer.flush();
+                }
+            } catch (IOException e) {
+                Log.e(LOG_TAG, safeMessage(e));
             }
-        } catch (IOException e) {
-            Log.e(LOG_TAG, safeMessage(e));
         }
     }
 
