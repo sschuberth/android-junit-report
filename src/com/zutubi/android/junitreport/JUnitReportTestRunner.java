@@ -207,7 +207,7 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
             try {
                 mWatchLines = Integer.parseInt(arguments.getString(ARG_WATCH_LINES));
             } catch (NumberFormatException e) {
-                e.printStackTrace();
+                mWatchLines = 0;
             }
 
             String watchKeywords = arguments.getString(ARG_WATCH_KEYWORDS);
