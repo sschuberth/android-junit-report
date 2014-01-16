@@ -75,8 +75,8 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
     private static final String ARG_WATCH_KEYWORDS = "watchKeywords";
     /**
      * If set to a positive integer, this is the number of lines that are tried to be captured from
-     * the log in case of a crash in native code.  By default this is set to 10.  Try to decrease
-     * this number if you are not seeing your native crash in the test report.
+     * the log in case of a crash in native code.  By default this is set to 10.  Decrease this number
+     * if you are not seeing any stack trace at all in the test report.
      */
     private static final String ARG_WATCH_LINES = "watchLines";
     /**
