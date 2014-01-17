@@ -25,6 +25,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 /**
  * Custom test runner that adds a {@link JUnitReportListener} to the underlying
@@ -91,6 +92,10 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
      * Default component tag names to filter the log for.
      */
     private static final String DEFAULT_WATCH_COMPONENTS = "ActivityManager AndroidRuntime System.err";
+    /**
+     * Default keywords to watch for that indicate a crash in native code.
+     */
+    private static final String[] DEFAULT_WATCH_KEYWORDS = { "fatal exception", "crash" };
     /**
      * Default number of lines to capture form the log in case of a crash in native code.
      */
@@ -204,15 +209,15 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
 
             mWatchComponents = arguments.getString(ARG_WATCH_COMPONENTS);
 
+            String watchKeywords = arguments.getString(ARG_WATCH_KEYWORDS);
+            if (watchKeywords != null) {
+                mWatchKeywords = watchKeywords.toLowerCase().split("\\s*,\\s*");
+            }
+
             try {
                 mWatchLines = Integer.parseInt(arguments.getString(ARG_WATCH_LINES));
             } catch (NumberFormatException e) {
                 mWatchLines = 0;
-            }
-
-            String watchKeywords = arguments.getString(ARG_WATCH_KEYWORDS);
-            if (watchKeywords != null) {
-                mWatchKeywords = watchKeywords.toLowerCase().split("\\s*,\\s*");
             }
         } else {
             Log.i(LOG_TAG, "No arguments provided");
@@ -228,14 +233,17 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
             Log.i(LOG_TAG, "Defaulted watch components to '" + mWatchComponents + "'");
         }
 
+        if (mWatchKeywords == null || mWatchKeywords.length == 0) {
+            mWatchKeywords = DEFAULT_WATCH_KEYWORDS;
+            Log.i(LOG_TAG, "Defaulted watch keywords to " + Arrays.toString(mWatchKeywords));
+        }
+
         if (mWatchLines <= 0) {
             mWatchLines = DEFAULT_WATCH_LINES;
             Log.i(LOG_TAG, "Defaulted watch lines to '" + mWatchLines + "'");
         }
 
-        if (mWatchKeywords != null && mWatchKeywords.length > 0) {
-            startLogThread();
-        }
+        startLogThread();
 
         super.onCreate(arguments);
     }
