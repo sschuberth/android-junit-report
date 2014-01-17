@@ -99,7 +99,7 @@ public class JUnitReportTestRunner extends InstrumentationTestRunner {
     /**
      * Default number of lines to capture form the log in case of a crash in native code.
      */
-    private static final int DEFAULT_WATCH_LINES = 10;
+    private static final int DEFAULT_WATCH_LINES = 8;
 
     private static final String LOG_TAG = JUnitReportTestRunner.class.getSimpleName();
     
