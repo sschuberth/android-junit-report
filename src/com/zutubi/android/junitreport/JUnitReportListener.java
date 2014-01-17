@@ -321,6 +321,9 @@ public class JUnitReportListener implements TestListener {
             if (!mMultiFile) {
                 mSerializer.endTag("", TAG_SUITES);
             }
+
+            mCurrentSuite = null;
+
             mSerializer.endDocument();
             mSerializer.flush();
             mSerializer = null;
