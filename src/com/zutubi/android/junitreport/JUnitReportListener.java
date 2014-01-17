@@ -140,10 +140,13 @@ public class JUnitReportListener implements TestListener {
         try {
             if (test instanceof TestCase) {
                 TestCase testCase = (TestCase) test;
-                checkForNewSuite(testCase);
-                mSerializer.startTag("", TAG_CASE);
-                mSerializer.attribute("", ATTRIBUTE_CLASS, mCurrentSuite);
-                mSerializer.attribute("", ATTRIBUTE_NAME, testCase.getName());
+
+                synchronized(this) {
+                    checkForNewSuite(testCase);
+                    mSerializer.startTag("", TAG_CASE);
+                    mSerializer.attribute("", ATTRIBUTE_CLASS, mCurrentSuite);
+                    mSerializer.attribute("", ATTRIBUTE_NAME, testCase.getName());
+                }
 
                 mTimeAlreadyWritten = false;
                 mTestStartTime = System.currentTimeMillis();
@@ -246,8 +249,12 @@ public class JUnitReportListener implements TestListener {
     }
 
     private void addProblem(String tag, Throwable error) {
-        if (mSerializer != null) {
-            try {
+        if (mSerializer == null) {
+            return;
+        }
+
+        try {
+            synchronized(this) {
                 recordTestTime();
 
                 mSerializer.startTag("", tag);
@@ -258,9 +265,9 @@ public class JUnitReportListener implements TestListener {
                 mSerializer.text(w.toString());
                 mSerializer.endTag("", tag);
                 mSerializer.flush();
-            } catch (IOException e) {
-                Log.e(LOG_TAG, safeMessage(e));
             }
+        } catch (IOException e) {
+            Log.e(LOG_TAG, safeMessage(e));
         }
     }
 
@@ -270,7 +277,11 @@ public class JUnitReportListener implements TestListener {
      * @param message message to be shown inside the error tag
      */
     public void addErrorTag(String message) throws IOException {
-        if (mSerializer != null) {
+        if (mSerializer == null) {
+            return;
+        }
+
+        synchronized(this) {
             recordTestTime();
 
             mSerializer.startTag("", TAG_ERROR);
@@ -290,16 +301,18 @@ public class JUnitReportListener implements TestListener {
 
     @Override
     public void endTest(Test test) {
-        if (mSerializer != null) {
-            try {
-                if (test instanceof TestCase) {
-                    recordTestTime();
-                    mSerializer.endTag("", TAG_CASE);
-                    mSerializer.flush();
-                }
-            } catch (IOException e) {
-                Log.e(LOG_TAG, safeMessage(e));
+        if (!(test instanceof TestCase) || mSerializer == null) {
+            return;
+        }
+
+        try {
+            synchronized(this) {
+                recordTestTime();
+                mSerializer.endTag("", TAG_CASE);
+                mSerializer.flush();
             }
+        } catch (IOException e) {
+            Log.e(LOG_TAG, safeMessage(e));
         }
     }
 
@@ -307,26 +320,28 @@ public class JUnitReportListener implements TestListener {
      * Releases all resources associated with this listener.  Throws an
      * IOException in case of an error.
      */
-    public synchronized void closeThrows() throws IOException {
-        if (mSerializer != null) {
-            // Do this just in case endTest() was not called due to a crash in native code.
-            if (TAG_CASE.equals(mSerializer.getName())) {
-                mSerializer.endTag("", TAG_CASE);
+    public void closeThrows() throws IOException {
+        synchronized(this) {
+            if (mSerializer != null) {
+                // Do this just in case endTest() was not called due to a crash in native code.
+                if (TAG_CASE.equals(mSerializer.getName())) {
+                    mSerializer.endTag("", TAG_CASE);
+                }
+
+                if (mCurrentSuite != null) {
+                    mSerializer.endTag("", TAG_SUITE);
+                }
+
+                if (!mMultiFile) {
+                    mSerializer.endTag("", TAG_SUITES);
+                }
+
+                mCurrentSuite = null;
+
+                mSerializer.endDocument();
+                mSerializer.flush();
+                mSerializer = null;
             }
-
-            if (mCurrentSuite != null) {
-                mSerializer.endTag("", TAG_SUITE);
-            }
-
-            if (!mMultiFile) {
-                mSerializer.endTag("", TAG_SUITES);
-            }
-
-            mCurrentSuite = null;
-
-            mSerializer.endDocument();
-            mSerializer.flush();
-            mSerializer = null;
         }
 
         if (mOutputStream != null) {
